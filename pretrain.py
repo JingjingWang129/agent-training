@@ -21,64 +21,40 @@ def build_sft_config() -> SFTConfig:
     base_args: Dict[str, Any] = {
         "output_dir": str(OUTPUT_DIR),
         "num_train_epochs": 1,
-        "per_device_train_batch_size": 2,
-        "gradient_accumulation_steps": 8,
-        "learning_rate": 5e-5,
+        "per_device_train_batch_size": 4,
+        "gradient_accumulation_steps": 4,
+        "learning_rate": 1e-5,
         "lr_scheduler_type": "cosine",
         "warmup_ratio": 0.1,
-        "bf16": True,
+        "fp16": True,
         "packing": True,
         "logging_steps": 50,
         "save_steps": 1000,
         "save_total_limit": 3,
         "report_to": "none",
         "remove_unused_columns": False,
+        "max_seq_length": MAX_SEQ_LENGTH,
+        "dataset_kwargs": {"skip_prepare_dataset": True},
     }
-
-    signature = inspect.signature(SFTConfig.__init__)
-
-    if "max_seq_length" in signature.parameters:
-        base_args["max_seq_length"] = MAX_SEQ_LENGTH
-    else:
-        base_args["max_length"] = MAX_SEQ_LENGTH
-
-    if "dataset_kwargs" in signature.parameters:
-        base_args["dataset_kwargs"] = {"skip_prepare_dataset": True}
-
     return SFTConfig(**base_args)
 
 
 def prepare_dataset(dataset):
-    def add_training_columns(example):
-        input_ids = example.get("input_ids")
-
-        if input_ids is None:
-            input_ids = []
-
-        return {
-            "input_ids": input_ids,
-            "attention_mask": [1] * len(input_ids),
-            "labels": input_ids.copy(),
-        }
-
-    keep_columns = {"input_ids", "attention_mask", "labels", "type", "instruction"}
+    # 只做列清理和过滤，不手动添加 labels
+    keep_columns = {"input_ids", "attention_mask", "type", "instruction"}
     remove_columns = [
         column for column in dataset.column_names
         if column not in keep_columns
     ]
-
     dataset = dataset.map(
-        add_training_columns,
-        batched=False,
+        lambda x: {k: v for k, v in x.items() if k in keep_columns},
         remove_columns=remove_columns,
-        desc="Preparing tokenized dataset",
+        desc="Cleaning dataset columns",
     )
-
     dataset = dataset.filter(
         lambda example: bool(example.get("input_ids")),
         desc="Filtering empty tokenized samples",
     )
-
     return dataset
 
 
@@ -140,17 +116,11 @@ def main() -> None:
     training_args = build_sft_config()
     print_training_info(dataset, training_args)
 
-    data_collator = DataCollatorForLanguageModeling(
-        tokenizer=tokenizer,
-        mlm=False,
-    )
-
     trainer = SFTTrainer(
         model=model,
         args=training_args,
         train_dataset=dataset,
         processing_class=tokenizer,
-        data_collator=data_collator,
     )
 
     trainer.train()
