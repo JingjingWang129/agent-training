@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import torch
 from datasets import load_from_disk
-from transformers import AutoModelForCausalLM, AutoTokenizer, DataCollatorForLanguageModeling
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
 
 from config.settings import MODEL_PATH, PROJECT_ROOT
@@ -14,7 +14,7 @@ TOKENIZED_DATA_DIR = Path(PROJECT_ROOT) / "data" / "tokenized"
 OUTPUT_DIR = Path(PROJECT_ROOT) / "checkpoints"
 FINAL_MODEL_DIR = Path(PROJECT_ROOT) / "final_model"
 
-MAX_SEQ_LENGTH = 2048
+# MAX_SEQ_LENGTH = 2048
 
 
 def build_sft_config() -> SFTConfig:
@@ -25,15 +25,15 @@ def build_sft_config() -> SFTConfig:
         "gradient_accumulation_steps": 4,
         "learning_rate": 1e-5,
         "lr_scheduler_type": "cosine",
-        "warmup_ratio": 0.1,
-        "fp16": True,
+        "warmup_steps": 1000,
+        "bf16": True,
         "packing": True,
         "logging_steps": 50,
         "save_steps": 1000,
         "save_total_limit": 3,
         "report_to": "none",
         "remove_unused_columns": False,
-        "max_seq_length": MAX_SEQ_LENGTH,
+        # "max_seq_length": MAX_SEQ_LENGTH,
         "dataset_kwargs": {"skip_prepare_dataset": True},
     }
     return SFTConfig(**base_args)
@@ -76,10 +76,10 @@ def print_training_info(dataset, training_args: SFTConfig) -> None:
     print(f"gradient_accumulation_steps: {training_args.gradient_accumulation_steps}")
     print(f"learning_rate: {training_args.learning_rate}")
     print(f"lr_scheduler_type: {training_args.lr_scheduler_type}")
-    print(f"warmup_ratio: {training_args.warmup_ratio}")
+    # print(f"warmup_ratio: {training_args.warmup_ratio}")
     print(f"bf16: {training_args.bf16}")
     print(f"packing: {training_args.packing}")
-    print(f"max_seq_length: {MAX_SEQ_LENGTH}")
+    # print(f"max_seq_length: {MAX_SEQ_LENGTH}")
 
     if type_counts:
         print("样本类型统计:")
