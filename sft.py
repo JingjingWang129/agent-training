@@ -8,7 +8,7 @@ from trl import SFTConfig, SFTTrainer
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-MODEL_PATH = PROJECT_ROOT / "models" / "deepseek-coder-1.3b-base"
+MODEL_PATH = PROJECT_ROOT / "final_model"
 DATA_PATH = PROJECT_ROOT / "data" / "training_samples.jsonl"
 OUTPUT_DIR = PROJECT_ROOT / "sft_checkpoints"
 FINAL_MODEL_DIR = PROJECT_ROOT / "sft_model"
@@ -128,22 +128,21 @@ def prepare_dataset() -> Dataset:
 def build_training_args() -> SFTConfig:
     return SFTConfig(
         output_dir=str(OUTPUT_DIR),
-        num_train_epochs=3,
+        num_train_epochs=1,
         per_device_train_batch_size=BATCH_SIZE,
         gradient_accumulation_steps=8,
-        learning_rate=2e-5,
+        learning_rate=1e-5,
         lr_scheduler_type="cosine",
-        warmup_ratio=0.03,
-        max_length=MAX_SEQ_LENGTH,
+        warmup_steps=2500,
+        # max_seq_length=MAX_SEQ_LENGTH,
         packing=False,
         bf16=True,
         logging_steps=20,
-        save_strategy="steps",
-        save_steps=500,
-        save_total_limit=3,
+        save_strategy="epoch",
+        # save_steps=1000,
+        save_total_limit=1,
         report_to="none",
         completion_only_loss=True,
-        dataset_text_field="text",
         remove_unused_columns=True,
     )
 
@@ -158,7 +157,8 @@ def print_config(dataset: Dataset, training_args: SFTConfig) -> None:
     print(f"batch_size: {training_args.per_device_train_batch_size}")
     print(f"gradient_accumulation_steps: {training_args.gradient_accumulation_steps}")
     print(f"learning_rate: {training_args.learning_rate}")
-    print(f"max_seq_length: {MAX_SEQ_LENGTH}")
+    print(f"warmup_steps: {training_args.warmup_steps}")
+    # print(f"max_seq_length: {training_args.max_seq_length}")
     print(f"bf16: {training_args.bf16}")
     print(f"save_steps: {training_args.save_steps}")
     print("================================\n")

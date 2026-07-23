@@ -20,3 +20,11 @@ data_pipeline/
 ├── build_tokens.py  # Tokenization：使用deepseek-ai/deepseek-coder-1.3b-base的tokenizer  
 ├── new_pretrain.py  # 适配个人电脑的代码，环境配置 transformers: 4.41.2，trl: 0.9.4，torch: 2.2.2  
 ├── pretrain.py  # 用于虚拟机的代码，环境配置均为最新版本  
+├── evaluation.py # 检查模型困惑度  
+├── check_tokenizer.py # 检查final model中的tokenizer能否正常工作  
+├── eval_quick.py # 检查模型的基础代码能力是否正常，由于保存模型时tokenizer存在问题，所以输出格式需要手动调整   
+├── sft.py  # 在虚拟机上进行指令微调，使用sample_builder.py中生成的training_sample.json文件   
+├── sft_eval.py  # 在虚拟机上评估模型编程能力的代码，有三个问题指令   
+├── sft_perplexity.py  # 在虚拟机上计算模型的困惑度，目前困惑度2.65  
+├── eval_local.py  # 在个人电脑上评估模型编程能力的代码，dtype = float32   
+├── perplexity_local.py  # 在个人电脑上计算模型的困惑度，由于cpu局限性无法得到精准结果   
