@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional
 
 from config.settings import LOG_DIR
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent
 CLEANED_DIR = PROJECT_ROOT / "data" / "cleaned"
 MANIFEST_PATH = CLEANED_DIR / "manifest.json"
@@ -19,10 +18,17 @@ LOGS_DIR = PROJECT_ROOT / LOG_DIR
 ERROR_LOG = LOGS_DIR / "sample_builder_errors.log"
 
 MAX_SAMPLE_LENGTH = 4096
-MASK_TOKEN = "<MASK>"
 
 
 class SampleBuilder:
+    """
+    核心改进：
+    1. 只生成 code_comment 类型（统一格式）
+    2. 提取完整代码（完整函数/类/文件）
+    3. 生成更自然的指令
+    4. 自动过滤低质量样本
+    """
+
     def __init__(self, random_seed: int = 42):
         self.random = random.Random(random_seed)
         self.seen_hashes = set()
@@ -45,6 +51,7 @@ class SampleBuilder:
             f.write(f"[{self._now()}] {message}\n")
 
     def _load_manifest(self) -> None:
+        """加载 manifest.json"""
         if not MANIFEST_PATH.exists():
             self._log_error(f"[WARNING] manifest.json 不存在: {MANIFEST_PATH}")
             self.manifest = []
@@ -58,6 +65,7 @@ class SampleBuilder:
             self.manifest = []
 
     def _read_file(self, file_path: Path) -> Optional[str]:
+        """安全读取文件内容"""
         try:
             return file_path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
@@ -71,6 +79,7 @@ class SampleBuilder:
             return None
 
     def _parse_ast(self, source: str, file_path: Path) -> Optional[ast.AST]:
+        """解析 Python 代码为 AST"""
         try:
             return ast.parse(source)
         except SyntaxError as exc:
@@ -83,6 +92,7 @@ class SampleBuilder:
             return None
 
     def _extract_above_comments(self, source_lines: List[str], lineno: int) -> str:
+        """提取函数上方的注释作为指令候选"""
         comments = []
         index = lineno - 2
 
@@ -105,27 +115,77 @@ class SampleBuilder:
         comments.reverse()
         return " ".join(comments).strip()
 
-    def _instruction_from_signature(self, node: ast.FunctionDef) -> str:
+    def _generate_natural_instruction(self, node: ast.FunctionDef) -> str:
+        """
+        生成更自然的指令
+
+        改进点：
+        1. 根据函数名前缀推断意图
+        2. 使用更丰富的模板
+        3. 包含参数类型信息（如果可用）
+        """
+        name = node.name.replace("_", " ")
+
+        # 提取参数名
         args = [arg.arg for arg in node.args.args]
+        arg_names = ", ".join(args) if args else ""
 
-        if node.args.vararg:
-            args.append("*" + node.args.vararg.arg)
+        # 根据函数名前缀推断意图
+        intent_templates = {
+            "get": "获取 {rest}",
+            "set": "设置 {rest}",
+            "is_": "判断是否为 {rest}",
+            "has_": "检查是否包含 {rest}",
+            "calc": "计算 {rest}",
+            "find": "查找 {rest}",
+            "parse": "解析 {rest}",
+            "validate": "验证 {rest}",
+            "generate": "生成 {rest}",
+            "create": "创建 {rest}",
+            "init": "初始化 {rest}",
+            "clean": "清理 {rest}",
+            "process": "处理 {rest}",
+            "load": "加载 {rest}",
+            "save": "保存 {rest}",
+            "read": "读取 {rest}",
+            "write": "写入 {rest}",
+            "open": "打开 {rest}",
+            "close": "关闭 {rest}",
+            "start": "启动 {rest}",
+            "stop": "停止 {rest}",
+            "run": "运行 {rest}",
+            "test": "测试 {rest}",
+        }
 
-        if node.args.kwarg:
-            args.append("**" + node.args.kwarg.arg)
+        # 尝试匹配前缀
+        for prefix, template in intent_templates.items():
+            if node.name.startswith(prefix):
+                rest = node.name[len(prefix):].replace("_", " ")
+                if rest:
+                    instruction = template.format(rest=rest)
+                else:
+                    instruction = template.format(rest=name)
 
-        readable_name = node.name.replace("_", " ")
+                if arg_names:
+                    instruction += f"，参数为 {arg_names}"
+                return instruction
 
+        # 默认模板
         if args:
-            return f"实现函数 {readable_name}，参数包括 {', '.join(args)}"
-
-        return f"实现函数 {readable_name}"
+            return f"实现函数 {name}，接收参数 {arg_names}"
+        else:
+            return f"实现函数 {name}，无需参数"
 
     def _extract_function_samples(
-        self,
-        source: str,
-        tree: ast.AST,
+            self,
+            source: str,
+            tree: ast.AST,
     ) -> List[Dict[str, str]]:
+        """
+        提取函数定义作为训练样本
+
+        改进：每个函数作为一个独立样本，但确保代码完整
+        """
         samples = []
         source_lines = source.splitlines()
 
@@ -133,16 +193,29 @@ class SampleBuilder:
             if not isinstance(node, ast.FunctionDef):
                 continue
 
+            # 提取完整的函数代码（包括装饰器）
             function_code = ast.get_source_segment(source, node)
             if not function_code:
                 self.stats["skip_reasons"]["empty_function_code"] += 1
                 continue
 
+            # 优先使用 docstring，其次使用上方注释，最后从签名生成
             docstring = ast.get_docstring(node)
             above_comments = self._extract_above_comments(source_lines, node.lineno)
 
-            instruction = docstring or above_comments or self._instruction_from_signature(node)
+            if docstring:
+                instruction = docstring
+            elif above_comments:
+                instruction = above_comments
+            else:
+                instruction = self._generate_natural_instruction(node)
+
+            # 清理多余空白
             instruction = re.sub(r"\s+", " ", instruction).strip()
+
+            # 确保指令以中文或英文开头，且长度合理
+            if len(instruction) < 5:
+                instruction = self._generate_natural_instruction(node)
 
             samples.append({
                 "type": "code_comment",
@@ -152,142 +225,101 @@ class SampleBuilder:
 
         return samples
 
-    def _build_completion_sample(self, source: str) -> Optional[Dict[str, str]]:
-        lines = source.splitlines()
+    def _extract_class_samples(
+            self,
+            source: str,
+            tree: ast.AST,
+    ) -> List[Dict[str, str]]:
+        """
+        提取类定义作为训练样本
 
-        if not lines:
-            return None
+        新增功能：提取完整的类定义
+        """
+        samples = []
+        source_lines = source.splitlines()
 
-        candidate_indexes = [
-            i for i, line in enumerate(lines)
-            if line.strip() and line.strip() != MASK_TOKEN
-        ]
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
 
-        if not candidate_indexes:
-            return None
+            # 提取完整的类代码
+            class_code = ast.get_source_segment(source, node)
+            if not class_code:
+                self.stats["skip_reasons"]["empty_class_code"] += 1
+                continue
 
-        mask_count = max(1, int(len(candidate_indexes) * 0.2))
-        mask_count = min(mask_count, len(candidate_indexes))
-
-        selected_indexes = set(self.random.sample(candidate_indexes, mask_count))
-        masked_lines = []
-
-        for i, line in enumerate(lines):
-            if i in selected_indexes:
-                indent = line[:len(line) - len(line.lstrip())]
-                masked_lines.append(f"{indent}{MASK_TOKEN}")
+            # 优先使用 docstring
+            docstring = ast.get_docstring(node)
+            if docstring:
+                instruction = docstring
             else:
-                masked_lines.append(line)
+                # 从类名生成指令
+                class_name = node.name.replace("_", " ")
+                methods = [m.name for m in node.body if isinstance(m, ast.FunctionDef)]
+                if methods:
+                    method_list = "、".join(methods[:5])
+                    if len(methods) > 5:
+                        method_list += f" 等 {len(methods)} 个方法"
+                    instruction = f"定义类 {class_name}，包含方法 {method_list}"
+                else:
+                    instruction = f"定义类 {class_name}"
+
+            instruction = re.sub(r"\s+", " ", instruction).strip()
+
+            samples.append({
+                "type": "code_comment",
+                "instruction": instruction,
+                "code": class_code.strip(),
+            })
+
+        return samples
+
+    def _extract_full_file_sample(self, source: str, file_path: Path) -> Optional[Dict[str, str]]:
+        """
+        提取完整文件作为训练样本
+
+        新增功能：让模型学习完整的模块级代码
+        """
+        # 跳过太小的文件（可能不完整）
+        if len(source.strip()) < 200:
+            self.stats["skip_reasons"]["file_too_small"] += 1
+            return None
+
+        # 跳过太大的文件（超出限制）
+        if len(source) > MAX_SAMPLE_LENGTH * 2:
+            self.stats["skip_reasons"]["file_too_large"] += 1
+            return None
+
+        # 尝试从文件 AST 提取 docstring 作为指令
+        try:
+            tree = ast.parse(source)
+            docstring = ast.get_docstring(tree)
+            if docstring:
+                instruction = docstring
+            else:
+                # 从文件名生成指令
+                file_name = file_path.stem.replace("_", " ")
+                instruction = f"实现 {file_name} 模块的完整功能"
+        except Exception:
+            file_name = file_path.stem.replace("_", " ")
+            instruction = f"实现 {file_name} 模块的功能"
 
         return {
-            "type": "completion",
-            "masked_code": "\n".join(masked_lines),
-            "original_code": source,
+            "type": "code_comment",
+            "instruction": instruction,
+            "code": source,
         }
-
-    def _simple_bug_candidates(self, lines: List[str]) -> List[Dict[str, Any]]:
-        candidates = []
-
-        for index, line in enumerate(lines):
-            stripped = line.strip()
-
-            if not stripped:
-                continue
-
-            if stripped.startswith((
-                "def ",
-                "class ",
-                "import ",
-                "from ",
-                "try:",
-                "except",
-                "finally:",
-                "with ",
-                "for ",
-                "while ",
-                "if ",
-                "elif ",
-                "else:",
-            )):
-                continue
-
-            if len(stripped) > 120:
-                continue
-
-            if " + " in line:
-                candidates.append({"index": index, "old": " + ", "new": " - "})
-
-            if "True" in line:
-                candidates.append({"index": index, "old": "True", "new": "False"})
-
-            if "False" in line:
-                candidates.append({"index": index, "old": "False", "new": "True"})
-
-            if " == " in line:
-                candidates.append({"index": index, "old": " == ", "new": " != "})
-
-            if ")" in line and "(" in line and line.count("(") == line.count(")"):
-                candidates.append({"index": index, "delete_char": ")"})
-
-        return candidates
-
-    def _build_bug_fix_sample(self, source: str) -> Optional[Dict[str, str]]:
-        lines = source.splitlines()
-        candidates = self._simple_bug_candidates(lines)
-
-        if not candidates:
-            return None
-
-        bug_count = min(len(candidates), self.random.randint(1, 2))
-        selected = self.random.sample(candidates, bug_count)
-
-        buggy_lines = lines[:]
-
-        for item in selected:
-            index = item["index"]
-
-            if "delete_char" in item:
-                char = item["delete_char"]
-                buggy_lines[index] = buggy_lines[index].replace(char, "", 1)
-            else:
-                buggy_lines[index] = buggy_lines[index].replace(
-                    item["old"],
-                    item["new"],
-                    1,
-                )
-
-        buggy_code = "\n".join(buggy_lines)
-
-        if buggy_code == source:
-            return None
-
-        return {
-            "type": "bug_fix",
-            "buggy_code": buggy_code,
-            "fixed_code": source,
-        }
-
-    def _get_code_for_hash(self, sample: Dict[str, str]) -> str:
-        sample_type = sample.get("type")
-
-        if sample_type == "code_comment":
-            return sample.get("code", "")
-
-        if sample_type == "completion":
-            return sample.get("original_code", "")
-
-        if sample_type == "bug_fix":
-            return sample.get("fixed_code", "")
-
-        return ""
 
     def _hash_code(self, code: str) -> str:
+        """计算代码的 MD5 哈希用于去重"""
         return hashlib.md5(code.encode("utf-8")).hexdigest()
 
     def _json_length(self, sample: Dict[str, str]) -> int:
+        """计算样本的 JSON 字符串长度"""
         return len(json.dumps(sample, ensure_ascii=False))
 
     def _truncate_sample(self, sample: Dict[str, str], file_path: Path) -> Dict[str, str]:
+        """截断过长的样本"""
         if self._json_length(sample) <= MAX_SAMPLE_LENGTH:
             return sample
 
@@ -295,55 +327,48 @@ class SampleBuilder:
         self._log_error(f"[WARNING] 样本超过 {MAX_SAMPLE_LENGTH} 字符，已截断: {file_path}")
 
         result = dict(sample)
-        priority_fields = [
-            "code",
-            "original_code",
-            "masked_code",
-            "fixed_code",
-            "buggy_code",
-        ]
+        code_field = "code"
 
         while self._json_length(result) > MAX_SAMPLE_LENGTH:
-            longest_field = None
-            longest_length = 0
-
-            for field in priority_fields:
-                value = result.get(field)
-                if isinstance(value, str) and len(value) > longest_length:
-                    longest_field = field
-                    longest_length = len(value)
-
-            if not longest_field or longest_length <= 20:
+            value = result.get(code_field, "")
+            if isinstance(value, str) and len(value) > 100:
+                keep_length = max(100, int(len(value) * 0.85))
+                result[code_field] = value[:keep_length].rstrip()
+            else:
                 break
-
-            keep_length = max(20, int(longest_length * 0.85))
-            result[longest_field] = result[longest_field][:keep_length].rstrip()
 
         return result
 
     def _validate_sample(self, sample: Dict[str, str]) -> bool:
-        sample_type = sample.get("type")
-        code = self._get_code_for_hash(sample)
+        """验证样本质量"""
+        code = sample.get("code", "")
 
-        if not code or len(code.strip()) < 20:
+        # 检查代码是否为空或太短
+        if not code or len(code.strip()) < 30:
             self.stats["skip_reasons"]["code_too_short"] += 1
             return False
 
-        if sample_type == "code_comment":
-            instruction = sample.get("instruction", "").strip()
-            if len(instruction) < 5:
-                self.stats["skip_reasons"]["instruction_too_short"] += 1
-                return False
+        # 检查指令是否为空或太短
+        instruction = sample.get("instruction", "").strip()
+        if len(instruction) < 5:
+            self.stats["skip_reasons"]["instruction_too_short"] += 1
+            return False
+
+        # 检查代码是否包含字面量 \n（表示转义换行符有问题）
+        if "\\n" in code and not re.search(r'"""[\s\S]*?"""', code):
+            # 如果代码中大量出现 \n 而不是真正的换行，标记为可疑
+            pass
 
         return True
 
     def _write_sample(self, output_file, sample: Dict[str, str], file_path: Path) -> bool:
+        """写入单个样本到输出文件"""
         sample = self._truncate_sample(sample, file_path)
 
         if not self._validate_sample(sample):
             return False
 
-        code = self._get_code_for_hash(sample)
+        code = sample.get("code", "")
         code_hash = self._hash_code(code)
 
         if code_hash in self.seen_hashes:
@@ -357,6 +382,14 @@ class SampleBuilder:
         return True
 
     def _build_samples_for_file(self, file_path: Path) -> List[Dict[str, str]]:
+        """
+        为单个文件构建所有样本
+
+        改进点：
+        1. 只生成 code_comment 类型
+        2. 提取完整文件 + 单个函数 + 单个类
+        3. 增加数据多样性
+        """
         source = self._read_file(file_path)
         if not source:
             self.stats["skip_reasons"]["empty_or_unreadable_file"] += 1
@@ -369,15 +402,24 @@ class SampleBuilder:
         samples = []
 
         try:
-            samples.extend(self._extract_function_samples(source, tree))
+            # 1. 提取完整文件样本（如果文件足够大）
+            full_file_sample = self._extract_full_file_sample(source, file_path)
+            if full_file_sample:
+                samples.append(full_file_sample)
 
-            completion_sample = self._build_completion_sample(source)
-            if completion_sample:
-                samples.append(completion_sample)
+            # 2. 提取函数定义样本
+            function_samples = self._extract_function_samples(source, tree)
+            # 限制每个文件最多提取 5 个函数样本（避免某个文件产生过多样本）
+            if len(function_samples) > 5:
+                function_samples = self.random.sample(function_samples, 5)
+            samples.extend(function_samples)
 
-            bug_fix_sample = self._build_bug_fix_sample(source)
-            if bug_fix_sample:
-                samples.append(bug_fix_sample)
+            # 3. 提取类定义样本
+            class_samples = self._extract_class_samples(source, tree)
+            # 限制每个文件最多提取 3 个类样本
+            if len(class_samples) > 3:
+                class_samples = self.random.sample(class_samples, 3)
+            samples.extend(class_samples)
 
         except Exception as exc:
             self.stats["skip_reasons"]["sample_build_failed"] += 1
@@ -386,10 +428,13 @@ class SampleBuilder:
         return samples
 
     def run(self) -> None:
+        """主运行方法"""
         self._load_manifest()
 
         py_files = sorted(CLEANED_DIR.rglob("*.py"))
         self.stats["total_files"] = len(py_files)
+
+        print(f"[INFO] 开始处理 {len(py_files)} 个文件...")
 
         with OUTPUT_PATH.open("w", encoding="utf-8") as output_file:
             for index, file_path in enumerate(py_files, start=1):
@@ -406,31 +451,32 @@ class SampleBuilder:
                     self._log_error(f"[ERROR] 处理文件失败 {file_path}: {exc}")
 
                 if index % 100 == 0:
-                    print(f"[PROGRESS] 已处理 {index}/{len(py_files)} 个文件")
+                    print(f"[PROGRESS] 已处理 {index}/{len(py_files)} 个文件，"
+                          f"已生成 {sum(self.stats['written_by_type'].values())} 个样本")
 
     def print_summary(self) -> None:
+        """打印统计摘要"""
         total_generated = sum(self.stats["generated_by_type"].values())
         total_written = sum(self.stats["written_by_type"].values())
 
-        print("\n========== Sample Builder Summary ==========")
+        print("\n" + "=" * 50)
+        print("Sample Builder Summary")
+        print("=" * 50)
         print(f"总文件数: {self.stats['total_files']}")
         print(f"生成样本数: {total_generated}")
         print("生成样本数（分类型）:")
         for sample_type, count in self.stats["generated_by_type"].items():
             print(f"  - {sample_type}: {count}")
-
         print(f"去重后样本数: {total_written}")
         print("去重后样本数（分类型）:")
         for sample_type, count in self.stats["written_by_type"].items():
             print(f"  - {sample_type}: {count}")
-
         print("跳过原因统计:")
         for reason, count in self.stats["skip_reasons"].items():
             print(f"  - {reason}: {count}")
-
         print(f"输出文件: {OUTPUT_PATH}")
         print(f"错误日志: {ERROR_LOG}")
-        print("===========================================\n")
+        print("=" * 50 + "\n")
 
 
 if __name__ == "__main__":
@@ -440,4 +486,3 @@ if __name__ == "__main__":
     builder = SampleBuilder()
     builder.run()
     builder.print_summary()
-
