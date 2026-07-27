@@ -318,26 +318,14 @@ class SampleBuilder:
         """计算样本的 JSON 字符串长度"""
         return len(json.dumps(sample, ensure_ascii=False))
 
-    def _truncate_sample(self, sample: Dict[str, str], file_path: Path) -> Dict[str, str]:
-        """截断过长的样本"""
+    def _truncate_sample(self, sample: Dict[str, str], file_path: Path) -> Optional[Dict[str, str]]:
+        """剔除过长的样本"""
         if self._json_length(sample) <= MAX_SAMPLE_LENGTH:
             return sample
 
-        self.stats["skip_reasons"]["truncated_too_long"] += 1
-        self._log_error(f"[WARNING] 样本超过 {MAX_SAMPLE_LENGTH} 字符，已截断: {file_path}")
-
-        result = dict(sample)
-        code_field = "code"
-
-        while self._json_length(result) > MAX_SAMPLE_LENGTH:
-            value = result.get(code_field, "")
-            if isinstance(value, str) and len(value) > 100:
-                keep_length = max(100, int(len(value) * 0.85))
-                result[code_field] = value[:keep_length].rstrip()
-            else:
-                break
-
-        return result
+        self.stats["skip_reasons"]["too_long_skipped"] += 1
+        self._log_error(f"[WARNING] 样本超过 {MAX_SAMPLE_LENGTH} 字符，已跳过: {file_path}")
+        return None
 
     def _validate_sample(self, sample: Dict[str, str]) -> bool:
         """验证样本质量"""
@@ -359,11 +347,19 @@ class SampleBuilder:
             # 如果代码中大量出现 \n 而不是真正的换行，标记为可疑
             pass
 
+        try:
+            ast.parse(code)
+        except SyntaxError:
+            self.stats["skip_reasons"]["invalid_python_after_build"] += 1
+            return False
+
         return True
 
     def _write_sample(self, output_file, sample: Dict[str, str], file_path: Path) -> bool:
         """写入单个样本到输出文件"""
         sample = self._truncate_sample(sample, file_path)
+        if sample is None:
+            return False
 
         if not self._validate_sample(sample):
             return False
