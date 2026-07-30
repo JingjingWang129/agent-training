@@ -23,8 +23,14 @@ data_pipeline/
 ├── evaluation.py # 检查模型困惑度  
 ├── check_tokenizer.py # 检查final model中的tokenizer能否正常工作  
 ├── eval_quick.py # 检查模型的基础代码能力是否正常，由于保存模型时tokenizer存在问题，所以输出格式需要手动调整   
-├── sft.py  # 在虚拟机上进行指令微调，使用sample_builder.py中生成的training_sample.json文件   
-├── sft_eval.py  # 在虚拟机上评估模型编程能力的代码，有三个问题指令   
+├── sft.py  # 在虚拟机上进行指令微调，使用sample_builder.py中生成的training_sample.json文件，共22万余样本      
+├── sft_eval.py  # 在虚拟机上评估模型编程能力的代码，有三个自然语言问题指令，模型的回复没有分词分行     
 ├── sft_perplexity.py  # 在虚拟机上计算模型的困惑度，目前困惑度2.65  
 ├── eval_local.py  # 在个人电脑上评估模型编程能力的代码，dtype = float32   
 ├── perplexity_local.py  # 在个人电脑上计算模型的困惑度，由于cpu局限性无法得到精准结果   
+├── sft_v2.py  # 基于第一次sft模型基础上的第二次sft，模型困惑度2.85，输出格式问题依然存在  
+├── debug_tokenizer.py  # 检查不同阶段模型的tokenizer能否正确转译training dataset中的代码格式   
+├── check_tokenizer.py  # 在确认tokenizer存在问题后逐步排查问题成因，最终确定是其与transformers v5的AutoTokenizer不兼容导致的  
+├── sft_v3.py  # 基于deepseek-coder-1.3b-base的原始模型进行新一轮轻量化sft，样本数1000  
+├── select_sft_samples.py  # 从原本的training dataset中筛选出更为优质的1000条样本用于新sft  
+├── new_eval.py  # 对新sft模型进行编程功能评估，模型困惑度2.25，输出格式正常   

@@ -3,7 +3,6 @@ import math
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from datasets import load_dataset
-import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 MODEL_PATH = PROJECT_ROOT / "sft_model"
