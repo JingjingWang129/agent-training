@@ -356,13 +356,22 @@ class SampleBuilder:
         return True
 
     def _write_sample(self, output_file, sample: Dict[str, str], file_path: Path) -> bool:
-        """写入单个样本到输出文件"""
+        """写入单个样本到输出文件，并在代码末尾添加结束标记"""
         sample = self._truncate_sample(sample, file_path)
         if sample is None:
             return False
 
         if not self._validate_sample(sample):
             return False
+
+        # 在 code 末尾添加结束标记，明确区分样本边界
+        if sample.get("type") == "code_comment":
+            code = sample.get("code", "")
+            if code:
+                # 确保代码末尾有换行
+                if not code.endswith("\n"):
+                    code = code + "\n"
+                sample["code"] = code + "### End of Code ###"
 
         code = sample.get("code", "")
         code_hash = self._hash_code(code)

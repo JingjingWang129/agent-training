@@ -57,13 +57,17 @@ def load_model_and_tokenizer():
 
 def format_prompt(instruction: str) -> str:
     return (
+        "### System:\n"
+        "You are a Python coding assistant.Use Python 3 syntax."
+        "Write only the code required to fulfill the user's instruction. "
+        "Stop after ## End of Code ##.\n\n"
         "### Instruction:\n"
         f"{instruction.strip()}\n\n"
         "### Response:\n"
     )
 
 
-def prepare_dataset() -> Dataset:
+def prepare_dataset(tokenizer) -> Dataset:
     if not DATA_PATH.exists():
         raise FileNotFoundError(f"训练数据不存在: {DATA_PATH}")
 
@@ -84,6 +88,8 @@ def prepare_dataset() -> Dataset:
 
     print(f"[INFO] code_comment 样本数: {len(dataset)}")
 
+    eos_token = tokenizer.eos_token or ""
+
     def build_text(example: Dict[str, Any]) -> Dict[str, str]:
         instruction = str(example.get("instruction") or "").strip()
         code = str(example.get("code") or "").strip()
@@ -98,6 +104,8 @@ def prepare_dataset() -> Dataset:
             "```python\n"
             f"{code}\n"
             "```"
+            "\n### End of Code ###"
+            f"{eos_token}"
         )
         return {"text": text}
 
@@ -137,9 +145,9 @@ def build_training_args() -> SFTConfig:
         num_train_epochs=2,
         per_device_train_batch_size=2,
         gradient_accumulation_steps=8,
-        learning_rate=5e-6,
+        learning_rate=1e-5,
         dataset_text_field="text",
-        completion_only_loss=False,
+        completion_only_loss=True,
         lr_scheduler_type="cosine",
         warmup_ratio=0.03,
         max_length=2048,
@@ -177,7 +185,7 @@ def main() -> None:
         print(f"将从 {MODEL_PATH} 继续训练")
 
         model, tokenizer = load_model_and_tokenizer()
-        dataset = prepare_dataset()
+        dataset = prepare_dataset(tokenizer)
         training_args = build_training_args()
 
         print_config(dataset, training_args)

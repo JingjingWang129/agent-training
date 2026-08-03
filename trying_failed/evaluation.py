@@ -24,7 +24,7 @@ if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
 # 2. 加载数据集
-dataset = load_from_disk('./data/tokenized')
+dataset = load_from_disk('../data/tokenized')
 # 取前 200 条作为验证集
 valid_dataset = dataset.select(range(min(200, len(dataset))))
 
