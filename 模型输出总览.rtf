@@ -1,0 +1,667 @@
+{\rtf1\ansi\ansicpg936\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \uc0\u27979 \u35797 1: \u33258 \u28982 \u35821 \u35328 \u25351 \u20196 \u27979 \u35797 \
+============================================================\
+Prompt: ### Instruction:\
+Implement a function to determine whether a number is a prime number\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a function to determine whether a number is a prime number\
+\
+### Response:\
+```python\
+def is_prime(n):\
+    """Implement a function to check if n is a prime number"""\
+    # Check for 0 and 1 as non-primes\
+    if n <= 1:\
+        return False\
+    \
+    # Check for even numbers greater than 2\
+    if n > 2 and n % 2 == 0:\
+        return False \
+    \
+    # Iterate over odd numbers up to the square root of n\
+    for i in range(3, int(math.sqrt(n)) + 1, 2):\
+        if n % i == 0:\
+            return False\
+        \
+    return True\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Write a calculator class named Calculator, which includes four methods: addition, subtraction, multiplication, and division\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a calculator class named Calculator, which includes four methods: addition, subtraction, multiplication, and division\
+\
+### Response:\
+```python\
+class Calculator:\
+    """Write a calculator class"""\
+    \
+    def __init__(self):\
+        self.result = 0\
+        \
+    def add(self, num1, num2):\
+        return num1 + num2\
+    \
+    def sub(self, num1 ,num2):\
+        return abs(num1 - num2)\
+    \
+    def mul(self, num1 : int | float, num2 : int | float ):\
+        return num2 * num1\
+    \
+    def div(self, num1:int|float, num2:int|float)->str:\
+        if not isinstance(num2,(int)) or (not isinstance(num2,float)):\
+            raise ValueError("Division by zero")\
+            \
+        try:\
+            result = round((num1 / num2),3)\
+        except ZeroDivisionError as e:\
+            print('Zero Division Error')\
+            #raise Exception from e\
+            pass\
+        else:\
+            return f"\{num1\} divided by \{num2\} is equal to \{result\}"\
+##\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Use pandas to read the CSV file and display the first 5 rows\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Use pandas to read the CSV file and display the first 5 rows\
+\
+### Response:\
+```python\
+def get_data(file):\
+    """Use pandas to read CSV file"""\
+    \
+    df = pd.read_csv(file)\
+    print("First 5 rows of data:\\n",df.head()) # Prints out first five rows in csv as a table\
+get_data('../input/train-v2.csv')\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 ============================================================\
+\
+\uc0\u27979 \u35797 2: \u22522 \u30784 \u36923 \u36753 \
+============================================================\
+Prompt: ### Instruction:\
+Write a function to determine whether a string is a palindrome\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a function to determine whether a string is a palindrome\
+\
+### Response:\
+```python\
+def is_palindrome(s: str) -> bool:\
+    """Write a function to determine if a string is a palidrome"""\
+    s = "".join([c for c in s.lower() if c.isalnum()])  # remove non-alphanumeric characters\
+    return s == s[::-1]  # check if the reversed string is equal to the original\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a function to calculate the greatest common divisor (GCD) of two numbers\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a function to calculate the greatest common divisor (GCD) of two numbers\
+\
+### Response:\
+```python\
+def gcd(a, b):  # type: ignore[no-untyped-def]\
+    """Implement a function to find the GCD of two integers."""\
+    if not isinstance(a, int) or not isinstance(b, int):\
+        raise TypeError("Both arguments must be integers.")\
+    while True:\
+        remainder = max(abs(a), abs(b)) % min(abs(a), abst(b))\
+        if remainder == 0:\
+            return min(abs(a) * -1, abs(b) * -1)\
+        else:\
+            a, b = remainder, min(abs(a - remainder), abs(b + remainder))\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Write a function to remove duplicates from a list of numbers and return the new list after removing duplicates\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a function to remove duplicates from a list of numbers and return the new list after removing duplicates\
+\
+### Response:\
+```python\
+def remove_duplicates(numbers):\
+    """Remove duplicate elements in a list"""\
+    unique = []\
+    for num in numbers:\
+        if num not in unique:\
+            unique.append(num)\
+    return unique\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a function that capitalizes the first letter of each word in the input string\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a function that capitalizes the first letter of each word in the input string\
+\
+### Response:\
+```python\
+def capitalize_words(input_string):\
+    """\
+    Implement a function that capitalize the first letter of each words in the input string.\
+    \
+    Args:\
+        input_string (str): The input string to be capitalized.\
+        \
+    Returns:\
+        str: The capitalized string.\
+    """\
+    # Split the input string into words and capitalize the first letter for each word.\
+    words = [word.capitalize() for word in input_string.split()]\
+    \
+    # Join the capitalized words back into a single string with spaces between them.\
+    return " ".join(words)\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Write a function to count the occurrence of each character in a string and return a dictionary\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a function to count the occurrence of each character in a string and return a dictionary\
+\
+### Response:\
+```python\
+def count_characters(string):\
+    """Write a function to count characters"""\
+    \
+    # Create an empty dict for storing counts\
+    char_count = \{\}\
+    \
+    # Loop through each character in the input string\
+    for char in string:\
+        if char not in char_count:\
+            char_count[char] = 0\
+        char_count[char.lower()] += 1\
+        \
+    return char_count  # Return the final result as a dictionary\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+\uc0\u27979 \u35797 3: \u32463 \u20856 \u31639 \u27861 \
+============================================================\
+Prompt: ### Instruction:\
+Implement a binary search algorithm to find the target value in an ordered array and return its index\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a binary search algorithm to find the target value in an ordered array and return its index\
+\
+### Response:\
+```python\
+def binary_search(arr, target):\
+    """Implement a binary search to find the target value"""\
+    \
+    # Set up variables for iteration through list of values.\
+    left = 0  # Left bound is set at first element (index zero)\
+    right = len(arr) - 1   # Right bound is set at last element minus one because it's exclusive on both ends.\
+    \
+    while left <= right:      # While loop will continue until we reach our bounds or hit no match.\
+        midpoint = (left + right) // 2       # Calculate middle point between left & right indices using integer division.\
+        \
+        if arr[midpoint] == target:          # If found...\
+            return midpoint                  # Return that position as result.\
+        elif arr[midpoint] < target:         # If less than current item...\
+            left = midpoint + 1              # Move lower end forward by one so we can check next item.\
+        else:                                 # Else greater than current item...\
+             right = midpoint - 1           # Move upper end backward by one so we can try again with new range.\
+\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Write a function to implement the quick sort algorithm for sorting a list in ascending order\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a function to implement the quick sort algorithm for sorting a list in ascending order\
+\
+### Response:\
+```python\
+def quick_sort(arr):\
+    """Sort an array using Quick Sort"""\
+    \
+    if len(arr) <= 1:  # Base case, return when length is less than or equal to one.\
+        return arr\
+    \
+    pivot = arr[len(arr) // 2]  # Choose a random element as the pivot point.\
+    left = [x for x in arr if x < pivot]  # Create two lists, one with elements smaller than and another larger than the pivot.\
+    right = [x for x  in arr if x > pivot]\
+    \
+    return quick_sort(left) + [pivot] + quick_sort(right)   # Recursively call the same function on each sub-list until they are sorted.\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a Fibonacci sequence generator that returns the nth Fibonacci number\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a Fibonacci sequence generator that returns the nth Fibonacci number\
+\
+### Response:\
+```python\
+def fib(n):  # Implement a Fibonnaci sequence generator.\
+    """Implement a Fibbonacci sequence generator."""\
+    if n == 0 or n == 1: return n\
+    \
+    prev, curr = 0, 1\
+    for _ in range(2, n + 1):\
+        prev, curr = curr, prev + curr\
+        \
+    return curr\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a function that merges two sorted lists and returns a new sorted list\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a function that merges two sorted lists and returns a new sorted list\
+\
+### Response:\
+```python\
+def merge_sorted(list1, list2):\
+    """Merge two sorted lists into one."""\
+    merged = []\
+    i = 0\
+    j = 0\
+    while i < len(list1) and j < len(list2):\
+        if list1[i] < list2[j]:\
+            merged.append(list1[i])\
+            i += 1\
+        else:\
+            merged.append((list2[j]))\
+            j += 1\
+    \
+    # Add any remaining elements from the first or second list to the merged array\
+    for k in range(i, len(list1)):\
+        merged.append(list[k])\
+        \
+    return merged \
+# This is an example usage of the above code\
+print("Merged List:", merge_sorted([3,5,7], [4,6,8]))\
+============================================================\
+\
+\uc0\u27979 \u35797 4: \u25968 \u25454 \u32467 \u26500 \
+============================================================\
+Prompt: ### Instruction:\
+Define a Stack class, implementing methods for pushing, popping, peeking at the top element, and checking whether it is empty\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Define a Stack class, implementing methods for pushing, popping, peeking at the top element, and checking whether it is empty\
+\
+### Response:\
+```python\
+class Stack:\
+    """A simple stack implementation"""\
+    \
+    def __init__(self):\
+        self.items = []\
+        \
+    def push(self, item):\
+        """Push an item onto the stack."""\
+        self.items.append(item)\
+        \
+    def pop(self):\
+        """Pop the last pushed item off of the stack."""\
+        return self.items.pop() if len(self.items) > 0 else None\
+    \
+    def peek(self):\
+        "Return the value of the most recently added item."\
+        return self.peek_item[-1] if len(self.stack) > 0 else None  # noqa E501\
+    \
+    @property\
+    def size(self):\
+        return len(self.items),\
+</details>\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a function to find the element that appears most frequently in a list\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a function to find the element that appears most frequently in a list\
+\
+### Response:\
+```python\
+def most_frequent(lst):  # type: ignore[no-untyped-def]\
+    """Implement a function to count and return the most frequent item."""\
+    counts = \{\}   # type: dict[str, int]\
+    for i in lst:\
+        if not isinstance(i, str) and (not hasattr(i, "__hash__") or callable(getattr(i, "hash"))):\
+            raise TypeError("Most Frequent requires an iterable of strings.")\
+        try:\
+            counts[i] += 1\
+        except KeyError as e:\
+            counts[e.args[0]] = 2\
+    maxcounts = sorted(list(counts.values()), reverse=True)[:3][::-1]\
+    return [k for k, v in counts.items() if v == maxcounts[0]]\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Write a function that swaps the keys and values of a dictionary to generate a new dictionary\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a function that swaps the keys and values of a dictionary to generate a new dictionary\
+\
+### Response:\
+```python\
+def swap_keys(d):\
+    """Swap keys and values in a dictionary."""\
+    return \{v: k for k, v in d.items()\}  # Swap key-value pairs using dict comprehension\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a simple LinkedList class, including methods for adding nodes and traversing and printing the list\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a simple LinkedList class, including methods for adding nodes and traversing and printing the list\
+\
+### Response:\
+```python\
+class LinkedList:\
+    """A linked list implementation."""\
+\
+    def __init__(self):\
+        self.head = None  # The first node in the list (None if empty)\
+        self.tail = None  # The last node in the list (none if empty)\
+        return\
+    \
+    def add_node(self, data):\
+        new_node = Node(data)\
+        \
+        if not self.head:\
+            self.head = new_node\
+            self.tail = new_node\
+        else:\
+            current = self.head\
+            while current.next is not None:\
+                current = current.next\
+            current.next = new_node\
+            \
+        return True\
+    \
+    def print_list(self):\
+        current = self.head  # Start at the head of the list\
+        while current is not None:\
+            print(current.data)\
+            current = current.next  \
+## End of Code ##\
+```\
+### End of Code ##\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a function that converts two lists into a dictionary, where one list serves as the keys and the other as the values\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a function that converts two lists into a dictionary, where one list serves as the keys and the other as the values\
+\
+### Response:\
+```python\
+def convert_lists(keys, values):\
+    """Implement a function that\
+       converts two lists into\
+       a dictionary, where one\
+       list serves as the keys\
+       and the other as the\
+       values."""\
+    \
+    return \{key: value for key, value in zip(keys, values)\}\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+\uc0\u27979 \u35797 5: \u22810 \u27493 \u39588 \u25512 \u29702 \
+============================================================\
+Prompt: ### Instruction:\
+Write a function that takes a list containing multiple numbers and returns a new list consisting of the squares of all the even numbers in the original list\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a function that takes a list containing multiple numbers and returns a new list consisting of the squares of all the even numbers in the original list\
+\
+### Response:\
+```python\
+def square_even(nums):\
+    """Write a function that takes an array containing multiple numbers, and returns a new array with only those elements whose value is greater than 10."""\
+    \
+    # Create empty output list to store squared values.\
+    result = []\
+    \
+    for num in nums:\
+        if num % 2 == 0:\
+            result.append(num ** 2)\
+            \
+    return result\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a function that reads a text file, counts the occurrence of each word in it, and returns the top 5 words with the highest occurrence\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a function that reads a text file, counts the occurrence of each word in it, and returns the top 5 words with the highest occurrence\
+\
+### Response:\
+```python\
+def get_top_words(filepath):\
+    """Reads a text file, counts word occurrences, and returns the top five most frequent ones."""\
+    \
+    # Read the contents of the file into memory as one big string.\
+    try:\
+        with open(filepath) as f:\
+            content = f.read()\
+    except FileNotFoundError:\
+        print("File not found.")\
+        return None\
+    \
+    # Split the content by whitespace to create a list of individual words.\
+    words = re.findall(r"\\w+", content.lower())\
+    \
+    # Count how many times each unique word occurs in the entire document.\
+    count_dict = Counter(words)\
+    \
+    # Get the top-five most common words from the dictionary using sorted().\
+    top_words = dict(count_dict.most_common(5))\
+    \
+    return top_words\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Write a simple decorator that calculates the execution time of a function and prints out the elapsed time\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a simple decorator that calculates the execution time of a function and prints out the elapsed time\
+\
+### Response:\
+```python\
+def timeit(func):\
+    """Write a simple decorator\
+that calculates the execution time\
+of a function and prints out\
+the elapsed time"""\
+    \
+    def wrapper(*args, **kwargs):\
+        start = time.time()\
+        result = func(*args, **kwargs)\
+        end = time.time() - start\
+        print("Elapsed time: \{:.2f\} seconds".format(end))\
+        return result\
+    \
+    return wrapper\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Implement a function that flattens a nested list (of arbitrary depth) into a one-dimensional list\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Implement a function that flattens a nested list (of arbitrary depth) into a one-dimensional list\
+\
+### Response:\
+```python\
+def flatten(lst):\
+    """Flatten a nested list."""\
+    return [item for sublist in lst for item in sublist] if isinstance(lst, list) else []  # noqa E501\
+### End of Code ###\
+```\
+### End of Code\
+============================================================\
+\
+============================================================\
+Prompt: ### Instruction:\
+Write a function that takes a date string (format: YYYY-MM-DD) and calculates and returns the day of the year it falls on\
+\
+### Response:\
+\
+============================================================\
+### Instruction:\
+Write a function that takes a date string (format: YYYY-MM-DD) and calculates and returns the day of the year it falls on\
+\
+### Response:\
+```python\
+def get_day_of_year(date):\
+    """Write a function that takes an input in format 'YYYY-MM-DD' as argument, \
+    calculate and return the day of the year."""\
+    \
+    # Convert to datetime object.\
+    dt = pd.to_datetime(date).to_pydatetime()\
+    \
+    # Calculate number of days since start of year using calendar module.\
+    num_days = 0\
+    for month in range(1, int(dt.month)):\
+        if is_leap_year(int(dt.year)):\
+            num_days += 31\
+        else:\
+            num_dayes += 28\
+        \
+    num_days += dt.day\
+    \
+    return num_days\
+### End of Code ###\
+```\
+### End of Code###\
+============================================================}
